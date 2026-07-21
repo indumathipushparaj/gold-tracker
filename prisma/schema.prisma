@@ -1,0 +1,23 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Purchase {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  carat           Int      // 22 or 24
+  weightInGrams   Float
+  pricePerGram    Float    // price you paid per gram at time of purchase
+  totalPaid       Float    // weightInGrams * pricePerGram
+  purchaseDate    DateTime @default(now())
+  createdAt       DateTime @default(now())
+}
