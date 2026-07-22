@@ -23,7 +23,7 @@ export default function AddPurchaseForm() {
   watch,
   reset,
   formState: { errors, isSubmitting },
-} = useForm<PurchaseFormInput>({
+} = useForm<PurchaseFormInput, any, PurchaseFormOutput>({
   resolver: zodResolver(purchaseSchema),
   defaultValues: {
     carat: '24',
@@ -35,26 +35,24 @@ export default function AddPurchaseForm() {
   const price = watch('pricePerGram');
   const total = weight && price ? (Number(weight) * Number(price)).toFixed(2) : '0.00';
 
-  const onSubmit = async (data: PurchaseFormData) => {
-    const res = await fetch('/api/purchases', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...data,
-        carat: Number(data.carat),
-        weightInGrams: Number(data.weightInGrams),
-        pricePerGram: Number(data.pricePerGram),
-        totalPaid: Number(total),
-      }),
-    });
+const onSubmit = async (data: PurchaseFormOutput) => {
+  const res = await fetch('/api/purchases', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...data,
+      carat: Number(data.carat),
+      totalPaid: Number(total),
+    }),
+  });
 
-    if (res.ok) {
-      reset();
-      alert('Purchase added successfully');
-    } else {
-      alert('Something went wrong');
-    }
-  };
+  if (res.ok) {
+    reset();
+    alert('Purchase added successfully');
+  } else {
+    alert('Something went wrong');
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[rgb(20,24,30)] px-4">
