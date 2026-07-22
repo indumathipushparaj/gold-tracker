@@ -11,22 +11,25 @@ const purchaseSchema = z.object({
   purchaseDate: z.string().min(1, 'Date is required'),
 });
 
-type PurchaseFormData = z.infer<typeof purchaseSchema>;
+type PurchaseFormInput = z.input<typeof purchaseSchema>;
+type PurchaseFormOutput = z.output<typeof purchaseSchema>;
+
+
 
 export default function AddPurchaseForm() {
   const {
-    register,
-    handleSubmit,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<PurchaseFormData>({
-    resolver: zodResolver(purchaseSchema),
-    defaultValues: {
-      carat: '24',
-      purchaseDate: new Date().toISOString().split('T')[0],
-    },
-  });
+  register,
+  handleSubmit,
+  watch,
+  reset,
+  formState: { errors, isSubmitting },
+} = useForm<PurchaseFormInput>({
+  resolver: zodResolver(purchaseSchema),
+  defaultValues: {
+    carat: '24',
+    purchaseDate: new Date().toISOString().split('T')[0],
+  },
+});
 
   const weight = watch('weightInGrams');
   const price = watch('pricePerGram');
