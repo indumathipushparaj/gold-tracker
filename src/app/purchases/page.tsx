@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { prisma } from '@/lib/prisma';
 import { getGoldPrices } from '@/lib/goldPrice';
 import PurchasesTable from '@/components/PurchasesTable';
