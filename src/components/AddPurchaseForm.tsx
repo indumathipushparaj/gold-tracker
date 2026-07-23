@@ -1,13 +1,16 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 
 const purchaseSchema = z.object({
   carat: z.enum(['22', '24']),
   weightInGrams: z.coerce.number().positive('Weight must be greater than 0'),
-  pricePerGram: z.coerce.number().positive('Price must be greater than 0'),
+  totalPaid: z.coerce.number().positive('Total paid must be greater than 0'),
+  pricePerGram: z.coerce.number().positive('Price per gram must be greater than 0'),
   purchaseDate: z.string().min(1, 'Date is required'),
 });
 
@@ -18,75 +21,97 @@ type PurchaseFormOutput = z.output<typeof purchaseSchema>;
 
 export default function AddPurchaseForm() {
   const {
-  register,
-  handleSubmit,
-  watch,
-  reset,
-  formState: { errors, isSubmitting },
-} = useForm<PurchaseFormInput, any, PurchaseFormOutput>({
-  resolver: zodResolver(purchaseSchema),
-  defaultValues: {
-    carat: '24',
-    purchaseDate: new Date().toISOString().split('T')[0],
-  },
-});
-
-  const weight = watch('weightInGrams');
-  const price = watch('pricePerGram');
-  const total = weight && price ? (Number(weight) * Number(price)).toFixed(2) : '0.00';
-
-const onSubmit = async (data: PurchaseFormOutput) => {
-  const res = await fetch('/api/purchases', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...data,
-      carat: Number(data.carat),
-      totalPaid: Number(total),
-    }),
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<PurchaseFormInput, unknown, PurchaseFormOutput>({
+    resolver: zodResolver(purchaseSchema),
+    defaultValues: {
+      carat: '24',
+      purchaseDate: new Date().toISOString().split('T')[0],
+      pricePerGram: 0,
+    },
   });
 
-  if (res.ok) {
-    reset();
-    alert('Purchase added successfully');
-  } else {
-    alert('Something went wrong');
-  }
-};
+  const weight = Number(watch('weightInGrams') || 0);
+  const totalPaid = Number(watch('totalPaid') || 0);
+  const computedPricePerGram = weight > 0 && totalPaid > 0 ? totalPaid / weight : 0;
+
+  useEffect(() => {
+    setValue('pricePerGram', computedPricePerGram, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  }, [computedPricePerGram, setValue]);
+
+  const onSubmit = async (data: PurchaseFormOutput) => {
+    const pricePerGram = weight > 0 && totalPaid > 0 ? totalPaid / weight : 0;
+
+    const res = await fetch('/api/purchases', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...data,
+        carat: Number(data.carat),
+        totalPaid: Number(data.totalPaid),
+        pricePerGram,
+      }),
+    });
+
+    if (res.ok) {
+      reset();
+      toast.success('Purchase added successfully');
+    } else {
+      toast.error('Something went wrong');
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[rgb(20,24,30)] px-4">
+    <div className="w-full flex items-center justify-center bg-[rgb(20,24,30)]">
       <div
-        className="w-full max-w-md rounded-2xl p-8"
+        className="w-full max-w-md rounded-2xl p-6"
         style={{
           backgroundColor: 'rgb(32,38,48)',
-          boxShadow: '0 0 40px rgba(252,213,53,0.08), 0 8px 24px rgba(0,0,0,0.4)',
+          boxShadow: '0 0 35px rgba(252,213,53,0.08), 0 8px 24px rgba(0,0,0,0.38)',
         }}
       >
-        <h1
-          className="text-2xl font-bold mb-1"
-          style={{ color: 'rgb(252,213,53)' }}
-        >
+        <h1 className="text-2xl font-bold mb-1" style={{ color: 'rgb(252,213,53)' }}>
           Add Gold Purchase
         </h1>
-        <p className="text-sm text-gray-400 mb-6">
+        <p className="text-sm text-gray-400 mb-4">
           Log a new gold purchase to track its value over time
         </p>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Carat */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Carat
             </label>
-            <select
-              {...register('carat')}
-              className="w-full rounded-lg bg-[rgb(24,28,36)] border border-gray-700 text-white px-3 py-2 focus:outline-none focus:ring-2"
-              style={{ '--tw-ring-color': 'rgb(252,213,53)' } as React.CSSProperties}
-            >
-              <option value="22">22 Carat</option>
-              <option value="24">24 Carat</option>
-            </select>
+            <div className="grid grid-cols-2 gap-3">
+              {(['22', '24'] as const).map((value) => (
+                <label
+                  key={value}
+                  className="cursor-pointer rounded-lg border px-3 py-2 text-center text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: watch('carat') === value ? 'rgb(252,213,53)' : 'rgb(75,85,99)',
+                    backgroundColor: watch('carat') === value ? 'rgba(252,213,53,0.1)' : 'rgb(24,28,36)',
+                    color: watch('carat') === value ? 'rgb(252,213,53)' : 'white',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    value={value}
+                    {...register('carat')}
+                    className="sr-only"
+                  />
+                  {value} Carat
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* Weight */}
@@ -99,7 +124,7 @@ const onSubmit = async (data: PurchaseFormOutput) => {
               step="0.001"
               placeholder="e.g. 5.5"
               {...register('weightInGrams')}
-              className="w-full rounded-lg bg-[rgb(24,28,36)] border border-gray-700 text-white px-3 py-2 focus:outline-none focus:ring-2 placeholder-gray-500"
+              className="w-full rounded-lg bg-[rgb(24,28,36)] border border-gray-700 text-white px-3 py-1.5 focus:outline-none focus:ring-2 placeholder-gray-500"
               style={{ '--tw-ring-color': 'rgb(252,213,53)' } as React.CSSProperties}
             />
             {errors.weightInGrams && (
@@ -107,22 +132,37 @@ const onSubmit = async (data: PurchaseFormOutput) => {
             )}
           </div>
 
-          {/* Price per gram */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Price per gram (₹)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="e.g. 6200"
-              {...register('pricePerGram')}
-              className="w-full rounded-lg bg-[rgb(24,28,36)] border border-gray-700 text-white px-3 py-2 focus:outline-none focus:ring-2 placeholder-gray-500"
-              style={{ '--tw-ring-color': 'rgb(252,213,53)' } as React.CSSProperties}
-            />
-            {errors.pricePerGram && (
-              <p className="text-red-400 text-xs mt-1">{errors.pricePerGram.message}</p>
-            )}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Total paid */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Total Paid (₹)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="e.g. 33000"
+                {...register('totalPaid')}
+                className="w-full rounded-lg bg-[rgb(24,28,36)] border border-gray-700 text-white px-3 py-1.5 focus:outline-none focus:ring-2 placeholder-gray-500"
+                style={{ '--tw-ring-color': 'rgb(252,213,53)' } as React.CSSProperties}
+              />
+              {errors.totalPaid && (
+                <p className="text-red-400 text-xs mt-1">{errors.totalPaid.message}</p>
+              )}
+            </div>
+
+            {/* Price per gram (calculated display) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Price per gram (₹)
+              </label>
+              <div className="w-full rounded-lg bg-[rgb(24,28,36)] border border-gray-700 px-3 py-1.5 text-white">
+                <span className="font-semibold" style={{ color: 'rgb(252,213,53)' }}>
+                  ₹{computedPricePerGram.toFixed(2)}
+                </span>
+              </div>
+              <input type="hidden" {...register('pricePerGram')} />
+            </div>
           </div>
 
           {/* Purchase date */}
@@ -133,7 +173,7 @@ const onSubmit = async (data: PurchaseFormOutput) => {
             <input
               type="date"
               {...register('purchaseDate')}
-              className="w-full rounded-lg bg-[rgb(24,28,36)] border border-gray-700 text-white px-3 py-2 focus:outline-none focus:ring-2"
+              className="w-full rounded-lg bg-[rgb(24,28,36)] border border-gray-700 text-white px-3 py-1.5 focus:outline-none focus:ring-2"
               style={{ '--tw-ring-color': 'rgb(252,213,53)' } as React.CSSProperties}
             />
             {errors.purchaseDate && (
@@ -141,22 +181,17 @@ const onSubmit = async (data: PurchaseFormOutput) => {
             )}
           </div>
 
-          {/* Total (calculated, read-only display) */}
-          <div className="rounded-lg bg-[rgb(24,28,36)] border border-gray-700 px-3 py-2 flex justify-between items-center">
-            <span className="text-sm text-gray-400">Total Paid</span>
-            <span className="font-semibold" style={{ color: 'rgb(252,213,53)' }}>
-              ₹{total}
-            </span>
-          </div>
-
           <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-lg py-2.5 font-semibold transition-opacity disabled:opacity-50"
-            style={{ backgroundColor: 'rgb(252,213,53)', color: 'rgb(20,24,30)' }}
-          >
-            {isSubmitting ? 'Saving...' : 'Add Purchase'}
-          </button>
+  type="submit"
+  disabled={isSubmitting}
+  className="w-full rounded-lg py-2.5 font-semibold transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+  style={{ backgroundColor: 'rgb(252,213,53)', color: 'rgb(20,24,30)' }}
+>
+  {isSubmitting && (
+    <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+  )}
+  {isSubmitting ? 'Saving...' : 'Add Purchase'}
+</button>
         </form>
       </div>
     </div>

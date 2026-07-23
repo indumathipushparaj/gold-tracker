@@ -6,6 +6,8 @@ Prisma v7 no longer automatically loads environment variables. You must load the
 
 ### v6 Behavior
 
+//
+
 Prisma CLI automatically loaded `.env` files.
 
 ### v7 Behavior

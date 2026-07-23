@@ -2,19 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
-type PurchaseWithPL = {
+type PurchaseRecord = {
   id: string;
   carat: number;
   weightInGrams: number;
   totalPaid: number;
   purchaseDate: Date;
-  currentValue: number | null;
-  profitLoss: number | null;
-  profitLossPercent: number | null;
 };
 
-export default function PurchasesTable({ purchases }: { purchases: PurchaseWithPL[] }) {
+export default function PurchasesTable({ purchases }: { purchases: PurchaseRecord[] }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -26,9 +24,10 @@ export default function PurchasesTable({ purchases }: { purchases: PurchaseWithP
     try {
       const res = await fetch(`/api/purchases?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
+        toast.success('Purchase deleted');
         router.refresh(); // re-fetches server data without a full page reload
       } else {
-        alert('Failed to delete purchase');
+        toast.error('Failed to delete purchase');
       }
     } finally {
       setDeletingId(null);
@@ -43,15 +42,13 @@ export default function PurchasesTable({ purchases }: { purchases: PurchaseWithP
           <th className="px-4 py-3 font-medium">Carat</th>
           <th className="px-4 py-3 font-medium">Weight (g)</th>
           <th className="px-4 py-3 font-medium">Paid (₹)</th>
-          <th className="px-4 py-3 font-medium">Current Value (₹)</th>
-          <th className="px-4 py-3 font-medium text-right">P/L</th>
           <th className="px-4 py-3 font-medium text-right"></th>
         </tr>
       </thead>
       <tbody>
         {purchases.length === 0 ? (
           <tr>
-            <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+            <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
               No purchases yet. Add your first one.
             </td>
           </tr>
@@ -64,24 +61,6 @@ export default function PurchasesTable({ purchases }: { purchases: PurchaseWithP
               <td className="px-4 py-3">{purchase.carat}K</td>
               <td className="px-4 py-3">{purchase.weightInGrams}</td>
               <td className="px-4 py-3">{purchase.totalPaid.toFixed(2)}</td>
-              <td className="px-4 py-3">
-                {purchase.currentValue !== null ? purchase.currentValue.toFixed(2) : '—'}
-              </td>
-              <td
-                className="px-4 py-3 text-right font-semibold"
-                style={{
-                  color:
-                    purchase.profitLoss === null
-                      ? '#9ca3af'
-                      : purchase.profitLoss >= 0
-                      ? '#4ade80'
-                      : '#f87171',
-                }}
-              >
-                {purchase.profitLoss !== null
-                  ? `${purchase.profitLoss >= 0 ? '+' : ''}₹${purchase.profitLoss.toFixed(2)} (${purchase.profitLossPercent!.toFixed(2)}%)`
-                  : '—'}
-              </td>
               <td className="px-4 py-3 text-right">
                 <button
                   onClick={() => handleDelete(purchase.id)}
