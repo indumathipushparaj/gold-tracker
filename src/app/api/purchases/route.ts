@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -13,6 +14,12 @@ const createPurchaseSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
 
@@ -33,41 +40,56 @@ export async function POST(request: NextRequest) {
         pricePerGram,
         totalPaid,
         purchaseDate: new Date(purchaseDate),
+        userId: session.user.id,
       },
     });
 
     return NextResponse.json(purchase, { status: 201 });
   } catch (error) {
     console.error('Error creating purchase:', error);
-    return NextResponse.json(
-      { error: 'Failed to create purchase' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create purchase' }, { status: 500 });
   }
 }
 
 export async function GET() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const purchases = await prisma.purchase.findMany({
+      where: { userId: session.user.id },
       orderBy: { purchaseDate: 'desc' },
     });
     return NextResponse.json(purchases);
   } catch (error) {
     console.error('Error fetching purchases:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch purchases' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: 'Missing purchase id' }, { status: 400 });
+    }
+
+    // Ensure the purchase belongs to this user before deleting
+    const purchase = await prisma.purchase.findUnique({ where: { id } });
+
+    if (!purchase || purchase.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
     await prisma.purchase.delete({ where: { id } });

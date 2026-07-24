@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import logo from '@/assets/gold-tracker-logo.png';
 import { getGoldPrices } from '@/lib/goldPrice';
+import UserMenu from '@/components/UserMenu';
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const goldPrices = await getGoldPrices();
@@ -34,19 +35,25 @@ export default async function AppShell({ children }: { children: React.ReactNode
             </span>
           </Link>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] sm:text-xs font-semibold">
-            <div className="rounded-full border px-2.5 py-1.5 sm:px-3" style={{ borderColor: 'rgba(252,213,53,0.35)', backgroundColor: 'rgba(252,213,53,0.08)' }}>
-              <span className="text-gray-300">22K (916)</span>
-              <span className="ml-1" style={{ color: 'rgb(252,213,53)' }}>
-                ₹{goldPrices?.price22k?.toFixed(2) ?? '—'}
-              </span>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] sm:text-xs font-semibold">
+              <div className="rounded-full border px-2.5 py-1.5 sm:px-3" style={{ borderColor: 'rgba(252,213,53,0.35)', backgroundColor: 'rgba(252,213,53,0.08)' }}>
+                <span className="text-gray-300">22K (916)</span>
+                <span className="ml-1" style={{ color: 'rgb(252,213,53)' }}>
+                  ₹{goldPrices?.price22k?.toFixed(2) ?? '—'}
+                </span>
+              </div>
+              <div className="rounded-full border px-2.5 py-1.5 sm:px-3" style={{ borderColor: 'rgba(252,213,53,0.35)', backgroundColor: 'rgba(252,213,53,0.08)' }}>
+                <span className="text-gray-300">24K (999)</span>
+                <span className="ml-1" style={{ color: 'rgb(252,213,53)' }}>
+                  ₹{goldPrices?.price24k?.toFixed(2) ?? '—'}
+                </span>
+              </div>
             </div>
-            <div className="rounded-full border px-2.5 py-1.5 sm:px-3" style={{ borderColor: 'rgba(252,213,53,0.35)', backgroundColor: 'rgba(252,213,53,0.08)' }}>
-              <span className="text-gray-300">24K (999)</span>
-              <span className="ml-1" style={{ color: 'rgb(252,213,53)' }}>
-                ₹{goldPrices?.price24k?.toFixed(2) ?? '—'}
-              </span>
-            </div>
+
+            <div className="h-6 w-px bg-white/10" />
+
+            <UserMenu />
           </div>
         </div>
       </header>

@@ -1,12 +1,21 @@
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
+import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getGoldPrices } from '@/lib/goldPrice';
 import PurchasesTable from '@/components/PurchasesTable';
+import Link from 'next/link';
+
 
 export default async function PurchasesPage() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return null; // proxy.ts should already redirect before this ever renders
+  }
+
   const purchases = await prisma.purchase.findMany({
+    where: { userId: session.user.id },
     orderBy: { purchaseDate: 'desc' },
   });
 
@@ -55,7 +64,7 @@ export default async function PurchasesPage() {
             className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
             style={{ backgroundColor: 'rgb(252,213,53)', color: 'rgb(20,24,30)' }}
           >
-            ← Back to Add Purchase
+            ← Back
           </Link>
         </div>
 
